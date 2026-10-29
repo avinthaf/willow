@@ -17,7 +17,7 @@ console.log("tools:", (await client.listTools()).tools.map((t) => t.name));
 const marker = `willow smoke test ${Date.now()}`;
 console.log("save:", text(await client.callTool({
   name: "save_memory",
-  arguments: { content: marker, kind: "test", agent: "test-server" },
+  arguments: { content: marker, kind: "test", agent: "test-server", project: "test-a" },
 })));
 
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL_UNPOOLED });
@@ -31,7 +31,7 @@ console.log("saved row:", rows);
 const oldId = Number(rows[0].id);
 console.log("supersede:", text(await client.callTool({
   name: "save_memory",
-  arguments: { content: `${marker} corrected`, kind: "test", agent: "test-server", supersedes: oldId },
+  arguments: { content: `${marker} corrected`, kind: "test", agent: "test-server", project: "test-b", supersedes: oldId },
 })));
 console.log("flag:", text(await client.callTool({
   name: "flag_memory",

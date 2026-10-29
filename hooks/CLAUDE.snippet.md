@@ -8,7 +8,7 @@ Load them at the start of every session. Load them again at the start of any res
 
 When to search:
 
-- At the start of a task, call `search_memory` for relevant preferences, decisions and lessons. Pass `project` unless you want results from every project.
+- At the start of a task, call `search_memory` for relevant preferences, decisions and lessons. Search all projects. Many learnings apply everywhere. Pass `project` only to narrow a noisy result.
 - Before saving something that might correct an older memory, search for it first. If one matches, save with `supersedes` set to its ID.
 - Superseded memories are hidden from search, so ignore any you remember seeing.
 
@@ -41,7 +41,8 @@ How to save:
 
 Stale or wrong memories:
 
-- To correct a memory, call `save_memory` with `supersedes` set to the old ID. The old one is marked superseded. Stay within the same project.
+- To correct a memory, call `save_memory` with `supersedes` set to the old ID. The old one is marked superseded. It can be in any project.
+- After a save with `supersedes`, check the reply. `Saved memory #N (superseded #M)` means it linked. A bare `Saved memory #N` means it did not, so tell the user the server may be outdated.
 - If a memory looks stale but you cannot replace it, call `flag_memory` with the ID and a reason.
 - Never delete or archive memories yourself. A human does that.
 

@@ -8,7 +8,7 @@ const db = new pg.Client({ connectionString: process.env.DATABASE_URL_UNPOOLED }
 await db.connect();
 
 const { rows } = await db.query(
-  "SELECT id, project, content FROM memories WHERE content ~* 'supersed(es|ing) +#[0-9]' ORDER BY id",
+  "SELECT id, content FROM memories WHERE content ~* 'supersed(es|ing) +#[0-9]' ORDER BY id",
 );
 
 const phrase = /supersed(?:es|ing)\s+((?:#\d+(?:\s*(?:,|and|&)\s*)?)+)/gi;
@@ -19,12 +19,11 @@ for (const row of rows) {
     for (const n of m[1].matchAll(/#(\d+)/g)) ids.add(Number(n[1]));
   }
   for (const oldId of ids) {
-    const { rows: old } = await db.query("SELECT id, project, status FROM memories WHERE id = $1", [oldId]);
+    const { rows: old } = await db.query("SELECT id, status FROM memories WHERE id = $1", [oldId]);
     const skip =
       old.length === 0 ? "missing"
       : oldId >= row.id ? "not older"
       : old[0].status !== "active" ? `already ${old[0].status}`
-      : old[0].project !== row.project ? "different project"
       : null;
     if (skip) {
       console.log(`skip   #${oldId} <- #${row.id} (${skip})`);

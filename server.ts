@@ -67,13 +67,10 @@ server.registerTool(
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
-        const old = await client.query("SELECT project, status FROM memories WHERE id = $1 FOR UPDATE", [supersedes]);
+        const old = await client.query("SELECT status FROM memories WHERE id = $1 FOR UPDATE", [supersedes]);
         if (old.rows.length === 0) throw new Error(`Memory #${supersedes} does not exist`);
         if (old.rows[0].status !== "active") {
           throw new Error(`Memory #${supersedes} is already ${old.rows[0].status}`);
-        }
-        if (old.rows[0].project && old.rows[0].project !== (project ?? null)) {
-          throw new Error(`Memory #${supersedes} belongs to project ${old.rows[0].project}, not ${project ?? "none"}`);
         }
         id = (await client.query(insertSql, params)).rows[0].id;
         await client.query(
