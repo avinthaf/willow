@@ -3,14 +3,14 @@
 Long-term shared memory for AI coding agents.
 
 Agents call an MCP tool to save learnings, preferences and decisions into Neon Postgres.
-Each memory is embedded on save with pgvector. Search is deferred on purpose.
+Each memory is embedded on save with pgvector. Agents recall them with semantic search.
 
 ## How it works
 
 - `server.ts` is an MCP stdio server. It exposes `save_memory`.
 - A save inserts a row into `memories`, then embeds it with OpenAI `text-embedding-3-small`.
 - If embedding fails, the row is still saved. Run `npm run backfill` to catch up.
-- `flag_memory` flags suspect rows. `search_memory` exists in the code but is not advertised to agents yet.
+- `search_memory` finds active memories by meaning. `flag_memory` flags suspect rows.
 - Hooks make agents actually save. Instructions alone were not enough.
 
 ## Setup
@@ -60,7 +60,7 @@ claude mcp add willow --scope user -- \
 
 Restart Claude Code. A server added mid-session only loads after a restart.
 
-The tool is deferred. Agents load it with `ToolSearch` using `select:mcp__willow__save_memory`.
+The tools are deferred. Agents load them with `ToolSearch` using `select:mcp__willow__save_memory,mcp__willow__search_memory,mcp__willow__flag_memory`.
 
 ## Make agents save reliably
 
@@ -73,11 +73,17 @@ The same text is in `hooks/CLAUDE.snippet.md`.
 ````md
 # Willow long-term memory
 
-The `save_memory` tool (MCP server `willow`) stores learnings in a shared database.
+The `save_memory`, `search_memory` and `flag_memory` tools (MCP server `willow`) store and recall learnings in a shared database.
 
-The tool is deferred. Load it with `ToolSearch` using `select:mcp__willow__save_memory`.
+The tools are deferred. Load them with `ToolSearch` using `select:mcp__willow__save_memory,mcp__willow__search_memory,mcp__willow__flag_memory`.
 
-Load it at the start of every session. Load it again at the start of any resumed or compacted session. A context reset drops the tool, so never assume it is still loaded.
+Load them at the start of every session. Load them again at the start of any resumed or compacted session. A context reset drops the tools, so never assume they are still loaded.
+
+When to search:
+
+- At the start of a task, call `search_memory` for relevant preferences, decisions and lessons. Pass `project` unless you want results from every project.
+- Before saving something that might correct an older memory, search for it first. If one matches, save with `supersedes` set to its ID.
+- Superseded memories are hidden from search, so ignore any you remember seeing.
 
 When to save. This is a rule, not a suggestion:
 
@@ -147,6 +153,7 @@ Other MCP-capable agents can use the same server. They need their own equivalent
 
 ## The `save_memory` tool
 
+
 | Field | Required | Notes |
 | --- | --- | --- |
 | `content` | yes | Standalone sentence or two. |
@@ -159,6 +166,17 @@ Other MCP-capable agents can use the same server. They need their own equivalent
 | `review_after` | no | `YYYY-MM-DD` date to re-check beta or fast-changing content. |
 
 `flag_memory(id, reason)` marks a memory as possibly stale. It does not hide or change it.
+
+## The `search_memory` tool
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `query` | yes | Natural language. |
+| `limit` | no | 1 to 20. Default 5. |
+| `project` | no | Only this project. Omit to search all. |
+| `kind` | no | Only this kind, such as `preference`. |
+
+Results include IDs and a similarity score. Superseded and archived rows are hidden.
 
 Do not save secrets or credentials. Willow has no access control yet.
 
@@ -203,4 +221,4 @@ One table, `memories`. See `schema.sql`.
 
 - Neon's free tier autosuspends after 5 minutes. The first save after idle retries while it wakes.
 - Switching embedding models means re-embedding. `embedding_model` records which one each row used.
-- Classification and search strategy are deferred until there are many memories.
+- Search is plain cosine similarity for now. Classification and ranking are not designed yet.

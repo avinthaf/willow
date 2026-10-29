@@ -1,10 +1,16 @@
 # Willow long-term memory
 
-The `save_memory` tool (MCP server `willow`) stores learnings in a shared database.
+The `save_memory`, `search_memory` and `flag_memory` tools (MCP server `willow`) store and recall learnings in a shared database.
 
-The tool is deferred. Load it with `ToolSearch` using `select:mcp__willow__save_memory`.
+The tools are deferred. Load them with `ToolSearch` using `select:mcp__willow__save_memory,mcp__willow__search_memory,mcp__willow__flag_memory`.
 
-Load it at the start of every session. Load it again at the start of any resumed or compacted session. A context reset drops the tool, so never assume it is still loaded.
+Load them at the start of every session. Load them again at the start of any resumed or compacted session. A context reset drops the tools, so never assume they are still loaded.
+
+When to search:
+
+- At the start of a task, call `search_memory` for relevant preferences, decisions and lessons. Pass `project` unless you want results from every project.
+- Before saving something that might correct an older memory, search for it first. If one matches, save with `supersedes` set to its ID.
+- Superseded memories are hidden from search, so ignore any you remember seeing.
 
 When to save. This is a rule, not a suggestion:
 
