@@ -30,6 +30,13 @@ How to save:
 - Write `content` as a standalone sentence or two. It must make sense with no other context.
 - Set `kind` to one of: `preference`, `learning`, `decision`, `context`.
 - Set `project` to the project folder name and `agent` to `claude-code`.
-- Put extras like file paths in `meta`.
+- Put extras like file paths in `meta`. Include `source_type` (docs, video, book, or inference) and `version` (such as iOS 26 or Swift 5.8) when they apply.
+- For beta or fast-changing content, set `review_after` to a YYYY-MM-DD date.
+
+Stale or wrong memories:
+
+- To correct a memory, call `save_memory` with `supersedes` set to the old ID. The old one is marked superseded. Stay within the same project.
+- If a memory looks stale but you cannot replace it, call `flag_memory` with the ID and a reason.
+- Never delete or archive memories yourself. A human does that.
 
 Do not save secrets, credentials, or trivial details. Do not announce each save. Save quietly and keep working.

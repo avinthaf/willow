@@ -17,6 +17,7 @@
   "scripts": {
     "migrate": "tsx --env-file=.env.local migrate.ts",
     "server": "tsx --env-file=.env.local server.ts",
-    "backfill": "tsx --env-file=.env.local backfill.ts"
+    "backfill": "tsx --env-file=.env.local backfill.ts",
+    "backfill-supersedes": "tsx --env-file=.env.local backfill-supersedes.ts"
   }
 }

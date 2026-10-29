@@ -28,12 +28,26 @@ const { rows } = await db.query(
 );
 console.log("saved row:", rows);
 
+const oldId = Number(rows[0].id);
+console.log("supersede:", text(await client.callTool({
+  name: "save_memory",
+  arguments: { content: `${marker} corrected`, kind: "test", agent: "test-server", supersedes: oldId },
+})));
+console.log("flag:", text(await client.callTool({
+  name: "flag_memory",
+  arguments: { id: oldId, reason: "smoke test" },
+})));
+console.log("old row:", (await db.query(
+  "SELECT status, superseded_by, flag_reason FROM memories WHERE id = $1", [oldId])).rows);
+
 console.log("\nsearch: how does the user like answers formatted");
 console.log(text(await client.callTool({
   name: "search_memory",
   arguments: { query: "how does the user like answers formatted", limit: 3 },
 })));
 
+// Clear the link first so the foreign key allows the delete.
+await db.query("UPDATE memories SET superseded_by = NULL WHERE kind = 'test' AND agent = 'test-server'");
 await db.query("DELETE FROM memories WHERE kind = 'test' AND agent = 'test-server'");
 await db.end();
 await client.close();

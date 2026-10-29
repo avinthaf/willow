@@ -10,7 +10,7 @@ Each memory is embedded on save with pgvector. Search is deferred on purpose.
 - `server.ts` is an MCP stdio server. It exposes `save_memory`.
 - A save inserts a row into `memories`, then embeds it with OpenAI `text-embedding-3-small`.
 - If embedding fails, the row is still saved. Run `npm run backfill` to catch up.
-- `search_memory` exists in the code but is not advertised to agents yet.
+- `flag_memory` flags suspect rows. `search_memory` exists in the code but is not advertised to agents yet.
 - Hooks make agents actually save. Instructions alone were not enough.
 
 ## Setup
@@ -103,7 +103,14 @@ How to save:
 - Write `content` as a standalone sentence or two. It must make sense with no other context.
 - Set `kind` to one of: `preference`, `learning`, `decision`, `context`.
 - Set `project` to the project folder name and `agent` to `claude-code`.
-- Put extras like file paths in `meta`.
+- Put extras like file paths in `meta`. Include `source_type` (docs, video, book, or inference) and `version` (such as iOS 26 or Swift 5.8) when they apply.
+- For beta or fast-changing content, set `review_after` to a YYYY-MM-DD date.
+
+Stale or wrong memories:
+
+- To correct a memory, call `save_memory` with `supersedes` set to the old ID. The old one is marked superseded. Stay within the same project.
+- If a memory looks stale but you cannot replace it, call `flag_memory` with the ID and a reason.
+- Never delete or archive memories yourself. A human does that.
 
 Do not save secrets, credentials, or trivial details. Do not announce each save. Save quietly and keep working.
 ````
@@ -147,9 +154,30 @@ Other MCP-capable agents can use the same server. They need their own equivalent
 | `project` | no | Project folder name. |
 | `agent` | no | For example `claude-code`. |
 | `session_id` | no | Session the memory came from. |
-| `meta` | no | Any JSON, such as file paths. |
+| `meta` | no | Any JSON, such as file paths, `source_type`, `version`. |
+| `supersedes` | no | ID of an older memory this one replaces. The old one becomes `superseded`. |
+| `review_after` | no | `YYYY-MM-DD` date to re-check beta or fast-changing content. |
+
+`flag_memory(id, reason)` marks a memory as possibly stale. It does not hide or change it.
 
 Do not save secrets or credentials. Willow has no access control yet.
+
+## Stale memories
+
+Agents can supersede and flag. They cannot archive or delete.
+
+- **Supersede:** save a correction with `supersedes`. Both changes happen in one transaction.
+  Only active memories in the same project can be superseded.
+- **Flag:** `flag_memory` records a reason. A human or a later janitor reviews flags.
+- **Archive and delete:** by hand in SQL. `status` is `active`, `superseded` or `archived`.
+- Search returns only `active` rows.
+
+Old corrections that only name the entry in text can be linked after the fact.
+
+```sh
+npm run backfill-supersedes             # dry run
+npm run backfill-supersedes -- --apply  # write
+```
 
 ## Schema
 
@@ -159,6 +187,8 @@ One table, `memories`. See `schema.sql`.
 - `agent`, `project`, `session_id`, `kind`
 - `content`, `meta` (jsonb)
 - `embedding vector(1536)`, `embedding_model`
+- `status`, `superseded_by`, `status_reason`, `status_changed_at`
+- `review_after`, `flag_reason`, `flagged_at`
 
 ## Scripts
 
@@ -167,6 +197,7 @@ One table, `memories`. See `schema.sql`.
 | `npm run migrate` | Applies `schema.sql`. |
 | `npm run server` | Runs the MCP server directly. |
 | `npm run backfill` | Embeds rows where `embedding IS NULL`. |
+| `npm run backfill-supersedes` | Links corrections to the entries they replace. Dry run unless `--apply`. |
 
 ## Notes
 
